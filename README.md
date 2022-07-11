@@ -8,3 +8,9 @@ Android O后台保持定位示例
 
 ## 功能描述 ##
 demo展示了在Android 8.0后台执行限制情况下，后台持续定位服务的示例。
+
+### AMap Sdk
+https://lbs.amap.com/api/android-sdk/gettingstarted
+https://lbs.amap.com/api/android-sdk/summary/
+https://lbs.amap.com/api/android-sdk/download/
+https://lbs.amap.com/api/android-location-sdk/guide/utilities/permission
