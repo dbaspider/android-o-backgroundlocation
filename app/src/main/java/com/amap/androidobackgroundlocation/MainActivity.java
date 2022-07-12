@@ -1,9 +1,11 @@
 package com.amap.androidobackgroundlocation;
 
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -20,6 +22,7 @@ import com.amap.api.location.AMapLocationClientOption.AMapLocationMode;
 import com.amap.api.location.AMapLocationClientOption.AMapLocationProtocol;
 import com.amap.api.location.AMapLocationListener;
 import com.amap.api.location.AMapLocationQualityReport;
+import com.amap.api.services.core.ServiceSettings;
 
 import java.text.SimpleDateFormat;
 import java.util.Locale;
@@ -39,10 +42,10 @@ import java.util.Locale;
  * </p>
  * @author hongming.wang
  */
-public class MainActivity extends CheckPermissionsActivity
-		implements
-        OnCheckedChangeListener,
-        OnClickListener {
+public class MainActivity extends CheckPermissionsActivity implements OnCheckedChangeListener, OnClickListener {
+
+	private static final String TAG = "MainActivity";
+
 	private RadioGroup rgLocationMode;
 	private EditText etInterval;
 	private EditText etHttpTimeout;
@@ -54,6 +57,7 @@ public class MainActivity extends CheckPermissionsActivity
 	private CheckBox cbSensorAble;
 	private TextView tvResult;
 	private Button btLocation;
+	private Button btViewMap;
 
 	private AMapLocationClient locationClient = null;
 	private AMapLocationClientOption locationOption = null;
@@ -65,7 +69,7 @@ public class MainActivity extends CheckPermissionsActivity
 		setContentView(R.layout.activity_main);
 		setTitle(R.string.title_location);
 
-		/**
+		/*
 		 * 如果使用{@link AMapLocationClient#enableBackgroundLocation(int, Notification)}的方式实现
 		 * 可以不用这个service
 		 */
@@ -73,7 +77,11 @@ public class MainActivity extends CheckPermissionsActivity
 		serviceIntent.setClass(this, LocationForcegroundService.class);
 
 		initView();
-		
+
+		//隐私政策合规
+		ServiceSettings.updatePrivacyShow(this,true,true);
+		ServiceSettings.updatePrivacyAgree(this,true);
+
 		//初始化定位
 		initLocation();
 	}
@@ -94,9 +102,11 @@ public class MainActivity extends CheckPermissionsActivity
 
 		tvResult = (TextView) findViewById(R.id.tv_result);
 		btLocation = (Button) findViewById(R.id.bt_location);
-		
+		btViewMap = (Button) findViewById(R.id.bt_viewmap);
+
 		rgLocationMode.setOnCheckedChangeListener(this);
 		btLocation.setOnClickListener(this);
+		btViewMap.setOnClickListener(this);
 	}
 
 	@Override
@@ -119,7 +129,7 @@ public class MainActivity extends CheckPermissionsActivity
 	@Override
 	protected void onResume() {
 		super.onResume();
-		/**
+		/*
 		 * 如果要一直显示可以不执行
 		 * 如果使用{@link AMapLocationClient#disableBackgroundLocation(boolean)} ，这段代码可以不要
 		 */
@@ -146,6 +156,7 @@ public class MainActivity extends CheckPermissionsActivity
 
 	}
 
+	@SuppressLint("NonConstantResourceId")
 	@Override
 	public void onCheckedChanged(RadioGroup group, int checkedId) {
 		if (null == locationOption) {
@@ -186,7 +197,10 @@ public class MainActivity extends CheckPermissionsActivity
 
 	@Override
 	public void onClick(View v) {
+		Log.i(TAG, "onClick " + v.getId());
 		if (v.getId() == R.id.bt_location) {
+			Log.i(TAG, "onClick bt_location");
+			//this.startActivity(new Intent(this, MapActivity.class));
 			if (btLocation.getText().equals(
 					getResources().getString(R.string.startLocation))) {
 				setViewEnable(false);
@@ -201,6 +215,11 @@ public class MainActivity extends CheckPermissionsActivity
 				stopLocation();
 				tvResult.setText("定位停止");
 			}
+		} else if (v.getId() == R.id.bt_viewmap) {
+			Log.i(TAG, "onClick MapActivity");
+			this.startActivity(new Intent(this, MapActivity.class));
+		} else {
+			Log.w(TAG, "onClick: where to go ???");
 		}
 	}
 	
@@ -213,12 +232,16 @@ public class MainActivity extends CheckPermissionsActivity
 	 */
 	private void initLocation(){
 		//初始化client
-		locationClient = new AMapLocationClient(this.getApplicationContext());
-		locationOption = getDefaultOption();
-		//设置定位参数
-		locationClient.setLocationOption(locationOption);
-		// 设置定位监听
-		locationClient.setLocationListener(locationListener);
+		try {
+			locationClient = new AMapLocationClient(this.getApplicationContext());
+			locationOption = getDefaultOption();
+			//设置定位参数
+			locationClient.setLocationOption(locationOption);
+			// 设置定位监听
+			locationClient.setLocationListener(locationListener);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**
@@ -247,11 +270,11 @@ public class MainActivity extends CheckPermissionsActivity
 	 * 定位监听
 	 */
 	AMapLocationListener locationListener = new AMapLocationListener() {
+		@SuppressLint("SetTextI18n")
 		@Override
 		public void onLocationChanged(AMapLocation location) {
 			if (null != location) {
-
-				StringBuffer sb = new StringBuffer();
+				StringBuilder sb = new StringBuilder();
 				//errCode等于0代表定位成功，其他的为定位失败，具体的可以参照官网定位错误码说明
 				if(location.getErrorCode() == 0){
 					sb.append("定位成功" + "\n");
@@ -299,11 +322,10 @@ public class MainActivity extends CheckPermissionsActivity
 		}
 	};
 
-
 	/**
 	 * 获取GPS状态的字符串
 	 * @param statusCode GPS状态码
-	 * @return
+	 * @return String
 	 */
 	private String getGPSStatusString(int statusCode){
 		String str = "";
@@ -326,11 +348,12 @@ public class MainActivity extends CheckPermissionsActivity
 		}
 		return str;
 	}
+
 	// 根据控件的选择，重新设置定位参数
 	private void resetOption() {
 		// 设置是否需要显示地址信息
 		locationOption.setNeedAddress(cbAddress.isChecked());
-		/**
+		/*
 		 * 设置是否优先返回GPS定位结果，如果30秒内GPS没有返回定位结果则进行网络定位
 		 * 注意：只有在高精度模式下的单次定位有效，其他方式无效
 		 */
@@ -348,7 +371,7 @@ public class MainActivity extends CheckPermissionsActivity
 		if (!TextUtils.isEmpty(strInterval)) {
 			try{
 				// 设置发送定位请求的时间间隔,最小值为1000，如果小于1000，按照1000算
-				locationOption.setInterval(Long.valueOf(strInterval));
+				locationOption.setInterval(Long.parseLong(strInterval));
 			}catch(Throwable e){
 				e.printStackTrace();
 			}
@@ -358,7 +381,7 @@ public class MainActivity extends CheckPermissionsActivity
 		if(!TextUtils.isEmpty(strTimeout)){
 			try{
 				// 设置网络请求超时时间
-			     locationOption.setHttpTimeOut(Long.valueOf(strTimeout));
+			     locationOption.setHttpTimeOut(Long.parseLong(strTimeout));
 			}catch(Throwable e){
 				e.printStackTrace();
 			}
@@ -405,7 +428,7 @@ public class MainActivity extends CheckPermissionsActivity
 	 */
 	private void destroyLocation(){
 		if (null != locationClient) {
-			/**
+			/*
 			 * 如果AMapLocationClient是在当前Activity实例化的，
 			 * 在Activity的onDestroy中一定要执行AMapLocationClient的onDestroy
 			 */
@@ -425,6 +448,7 @@ public class MainActivity extends CheckPermissionsActivity
 			try {
 				sdf = new SimpleDateFormat(strPattern, Locale.CHINA);
 			} catch (Throwable e) {
+				e.printStackTrace();
 			}
 		} else {
 			sdf.applyPattern(strPattern);
