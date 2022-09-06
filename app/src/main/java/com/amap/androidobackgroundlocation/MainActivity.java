@@ -113,12 +113,12 @@ public class MainActivity extends CheckPermissionsActivity implements OnCheckedC
 	protected void onPause() {
 		super.onPause();
 		//如果已经开始定位了，显示通知栏
-		if(isSartLocation) {
+		if(isStartLocation) {
 			//如果使用{@link AMapLocationClient#enableBackgroundLocation(int, Notification)}，这段代码可以不要
 			if (null != serviceIntent) {
 				startService(serviceIntent);
 			}
-
+			//locationClient.enableBackgroundLocation();
 			//开启APSService后台定位能力
 //			if(null != locationClient) {
 //				locationClient.enableBackgroundLocation(Utils.NOTIFY_ID, Utils.buildNotification(getApplicationContext()));
@@ -252,10 +252,10 @@ public class MainActivity extends CheckPermissionsActivity implements OnCheckedC
 	 */
 	private AMapLocationClientOption getDefaultOption(){
 		AMapLocationClientOption mOption = new AMapLocationClientOption();
-		mOption.setLocationMode(AMapLocationMode.Hight_Accuracy);//可选，设置定位模式，可选的模式有高精度、仅设备、仅网络。默认为高精度模式
+		mOption.setLocationMode(AMapLocationMode.Device_Sensors);//可选，设置定位模式，可选的模式有高精度、仅设备、仅网络。默认为高精度模式 Hight_Accuracy
 		mOption.setGpsFirst(false);//可选，设置是否gps优先，只在高精度模式下有效。默认关闭
 		mOption.setHttpTimeOut(30000);//可选，设置网络请求超时时间。默认为30秒。在仅设备模式下无效
-		mOption.setInterval(2000);//可选，设置定位间隔。默认为2秒
+		mOption.setInterval(20000);//可选，设置定位间隔。默认为2秒
 		mOption.setNeedAddress(true);//可选，设置是否返回逆地理地址信息。默认是true
 		mOption.setOnceLocation(false);//可选，设置是否单次定位。默认是false
 		mOption.setOnceLocationLatest(false);//可选，设置是否等待wifi刷新，默认为false.如果设置为true,会自动变为单次定位，持续定位时不要使用
@@ -276,7 +276,10 @@ public class MainActivity extends CheckPermissionsActivity implements OnCheckedC
 			if (null != location) {
 				StringBuilder sb = new StringBuilder();
 				//errCode等于0代表定位成功，其他的为定位失败，具体的可以参照官网定位错误码说明
-				if(location.getErrorCode() == 0){
+				if (location.getErrorCode() == 0) {
+					String content = Constants.getDateStrNow() + "," + location.getLongitude() + "," + location.getLatitude()
+							+ "," + location.getAccuracy();
+					FileUtils.addContentToFile(FileUtils.DEF_FILE_NAME, content, FileUtils.DEF_FILE_PATH);
 					sb.append("定位成功" + "\n");
 					sb.append("定位类型: " + location.getLocationType() + "\n");
 					sb.append("经    度    : " + location.getLongitude() + "\n");
@@ -299,6 +302,8 @@ public class MainActivity extends CheckPermissionsActivity implements OnCheckedC
 					//定位完成的时间
 					sb.append("定位时间: " + formatUTC(location.getTime(), "yyyy-MM-dd HH:mm:ss") + "\n");
 				} else {
+					String content = Constants.getDateStrNow() + "," + location.getErrorCode() + ",\"" + location.getErrorInfo() + "\"";
+					FileUtils.addContentToFile(FileUtils.DEF_ERR_FILE, content, FileUtils.DEF_FILE_PATH);
 					//定位失败
 					sb.append("定位失败" + "\n");
 					sb.append("错误码:" + location.getErrorCode() + "\n");
@@ -327,7 +332,7 @@ public class MainActivity extends CheckPermissionsActivity implements OnCheckedC
 	 * @param statusCode GPS状态码
 	 * @return String
 	 */
-	private String getGPSStatusString(int statusCode){
+	private String getGPSStatusString(int statusCode) {
 		String str = "";
 		switch (statusCode){
 			case AMapLocationQualityReport.GPS_STATUS_OK:
@@ -344,6 +349,9 @@ public class MainActivity extends CheckPermissionsActivity implements OnCheckedC
 				break;
 			case AMapLocationQualityReport.GPS_STATUS_NOGPSPERMISSION:
 				str = "没有GPS定位权限，建议开启gps定位权限";
+				break;
+			default:
+				str = "未知代码: " + statusCode;
 				break;
 		}
 		return str;
@@ -388,7 +396,7 @@ public class MainActivity extends CheckPermissionsActivity implements OnCheckedC
 		}
 	}
 
-	boolean isSartLocation = false;
+	boolean isStartLocation = false;
 	/**
 	 * 开始定位
 	 * 
@@ -403,7 +411,7 @@ public class MainActivity extends CheckPermissionsActivity implements OnCheckedC
 		locationClient.setLocationOption(locationOption);
 		// 启动定位
 		locationClient.startLocation();
-		isSartLocation = true;
+		isStartLocation = true;
 	}
 	
 	/**
@@ -416,7 +424,7 @@ public class MainActivity extends CheckPermissionsActivity implements OnCheckedC
 	private void stopLocation(){
 		// 停止定位
 		locationClient.stopLocation();
-		isSartLocation = false;
+		isStartLocation = false;
 	}
 	
 	/**
@@ -436,7 +444,7 @@ public class MainActivity extends CheckPermissionsActivity implements OnCheckedC
 			locationClient = null;
 			locationOption = null;
 		}
-		isSartLocation = false;
+		isStartLocation = false;
 	}
 
 	private static SimpleDateFormat sdf = null;

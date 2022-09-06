@@ -21,7 +21,7 @@
     <string name="stopLocation">停止定位</string>
     <string name="viewMap">查看地图</string>
 
-    <string name="defaultInteval">2000</string>
+    <string name="defaultInteval">20000</string>
     <string name="defaultHttpTimeout">30000</string>
 
 </resources>

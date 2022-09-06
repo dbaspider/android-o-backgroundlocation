@@ -42,7 +42,7 @@ public class CheckPermissionsActivity extends Activity {
 			Manifest.permission.READ_PHONE_STATE
 			};
 	
-	private static final int PERMISSON_REQUESTCODE = 0;
+	private static final int PERMISSON_REQUESTCODE = 12580;
 	
 	/**
 	 * 判断是否需要检测，防止不停的弹框
@@ -200,7 +200,4 @@ public class CheckPermissionsActivity extends Activity {
 		return super.onKeyDown(keyCode, event);
 	}
 
-
-
-		
 }
